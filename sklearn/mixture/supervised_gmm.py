@@ -3,11 +3,11 @@ Supervised Gaussian Mixture Models
 """
 
 import numpy as np
-from sklearn.base import ClassifierMixin
-from sklearn.mixture import gmm
+from ..base import ClassifierMixin
+from . import GMM, log_multivariate_normal_density
 
 
-class SupervisedGMM(gmm.GMM, ClassifierMixin):
+class SupervisedGMM(GMM, ClassifierMixin):
     def fit(self, X, y):
 
         X = np.asarray(X)
@@ -48,7 +48,7 @@ class SupervisedGMM(gmm.GMM, ClassifierMixin):
             self.covars_ = np.cov(X.T) / n_components
 
     def predict(self, X):
-        idx = gmm.GMM.predict(self, X)
+        idx = GMM.predict(self, X)
         return self._components[idx]
 
     def precision(self, X, y):
@@ -64,11 +64,11 @@ class SupervisedGMM(gmm.GMM, ClassifierMixin):
                 continue
 
             if self._covariance_type == "tied":
-                s += gmm.log_multivariate_normal_density(X[idx],
+                s += log_multivariate_normal_density(X[idx],
                     self.means_[k, np.newaxis], self.covars_,
                     self._covariance_type).sum()
             else:
-                s += gmm.log_multivariate_normal_density(X[idx],
+                s += log_multivariate_normal_density(X[idx],
                     self.means_[k, np.newaxis], self.covars_[k, np.newaxis],
                         self._covariance_type).sum()
 
