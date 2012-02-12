@@ -407,8 +407,7 @@ class GMM(BaseEstimator):
                     num_comp_in_X, random_state=random_state).T
         return X
 
-    def fit(self, X, n_iter=100, n_init=1, thresh=1e-2, params='wmc',
-            init_params='wmc'):
+    def fit(self, X, n_iter=100, n_init=1, params='wmc', init_params='wmc'):
         """Estimate model parameters with the expectation-maximization
         algorithm.
 

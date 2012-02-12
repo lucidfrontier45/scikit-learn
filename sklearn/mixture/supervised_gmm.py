@@ -8,7 +8,22 @@ from . import GMM, log_multivariate_normal_density
 
 
 class SupervisedGMM(GMM, ClassifierMixin):
-    def fit(self, X, y):
+    def _init_params(self, n_components, n_features, init_params='wmc'):
+        if 'w' in init_params:
+            self.weights_ = np.ones(n_components, np.float) / n_components
+        if 'm' in init_params:
+            self.means_ = np.empty((n_components, n_features))
+        if 'c' in init_params:
+            if self._covariance_type == "spherical":
+                self.covars_ = np.empty((n_components, n_features))
+            elif self._covariance_type == "diag":
+                self.covars_ = np.empty((n_components, n_features))
+            elif self._covariance_type == "full":
+                self.covars_ = np.empty((n_components, n_features, n_features))
+            elif self._covariance_type == "tied":
+                self.covars_ = np.empty((n_features, n_features))
+            
+    def fit(self, X, y, params='wmc', init_params="wmc"):
 
         X = np.asarray(X)
         y = np.asarray(y)
@@ -20,31 +35,24 @@ class SupervisedGMM(GMM, ClassifierMixin):
         self.n_features = n_features
 
         ## initialization step
-        self.weights_ = np.ones(n_components, dtype=np.float) / n_components
-        self.means_ = np.empty((n_components, n_features))
-        if self._covariance_type == "spherical":
-            self.covars_ = np.empty((n_components, n_features))
-        elif self._covariance_type == "diag":
-            self.covars_ = np.empty((n_components, n_features))
-        elif self._covariance_type == "full":
-            self.covars_ = np.empty((n_components, n_features, n_features))
-        elif self._covariance_type == "tied":
-            self.covars_ = np.empty((n_features, n_features))
+        self._init_params(n_components, n_features, init_params)
 
         for k, c in enumerate(unique_y):
             mask = (y == c)
-            self.weights_[k] = float(mask.sum()) / n_samples
-            self.means_[k] = np.mean(X[mask], axis=0)
+            if 'w' in params:
+                self.weights_[k] = float(mask.sum()) / n_samples
+            if 'm' in params:
+                self.means_[k] = np.mean(X[mask], axis=0)
+            if 'c' in params:
+                if self._covariance_type == "diag":
+                    self.covars_[k] = np.var(X[mask], axis=0)
+                elif self._covariance_type == "spherical":
+                    self.covars_[k] = np.tile(
+                            np.var(X[mask], axis=0).mean(), n_features)
+                elif self._covariance_type == "full":
+                    self.covars_[k] = np.cov(X[mask].T)
 
-            if self._covariance_type == "diag":
-                self.covars_[k] = np.var(X[mask], axis=0)
-            elif self._covariance_type == "spherical":
-                self.covars_[k] = np.tile(
-                        np.var(X[mask], axis=0).mean(), n_features)
-            elif self._covariance_type == "full":
-                self.covars_[k] = np.cov(X[mask].T)
-
-        if self._covariance_type == "tied":
+        if 'c' in params and self._covariance_type == "tied":
             self.covars_ = np.cov(X.T) / n_components
 
     def predict(self, X):
